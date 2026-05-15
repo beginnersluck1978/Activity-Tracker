@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 import { Activity } from "@/types/activity";
-import { Mic, MicOff, ExternalLink, Square, Loader2, Keyboard, ClockIcon, History } from "lucide-react";
+import { Mic, MicOff, ExternalLink, Square, Loader2, Keyboard, ClockIcon, History, Image } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { userConfig } from "@/config/userConfig";
 import {
@@ -17,8 +17,9 @@ import {
 } from "@/lib/api";
 
 const CACHE_KEY = "activity_tracker_cache";
+const CUSTOM_BG_KEY = "activity_tracker_bg";
 
-const getBgUrl = () => {
+const getDefaultBgUrl = () => {
   const img = userConfig.backgroundImage;
   if (img.startsWith("http://") || img.startsWith("https://")) return img;
   return `${import.meta.env.BASE_URL}${img}`;
@@ -42,6 +43,7 @@ const writeCache = (current: Activity | null, recent: Activity[]) => {
 const Index = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const bgInputRef = useRef<HTMLInputElement>(null);
   const { isListening, transcript, startListening, stopListening, resetTranscript, isSupported } =
     useSpeechRecognition();
 
@@ -53,10 +55,33 @@ const Index = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isEnding, setIsEnding] = useState(false);
+  const [bgUrl, setBgUrl] = useState<string>(getDefaultBgUrl());
 
   const isIOS =
     /iPad|iPhone|iPod/.test(navigator.userAgent) ||
     (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+  // Load custom background from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(CUSTOM_BG_KEY);
+    if (saved) setBgUrl(saved);
+  }, []);
+
+  const handleBgChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const result = ev.target?.result as string;
+      setBgUrl(result);
+      try {
+        localStorage.setItem(CUSTOM_BG_KEY, result);
+      } catch {
+        // Image too large for localStorage — just use it for this session
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const applyData = (current: Activity | null, recent: Activity[]) => {
     setCurrentActivity(current);
@@ -170,18 +195,30 @@ const Index = () => {
 
   return (
     <div className="min-h-screen relative flex flex-col px-4 py-6 max-w-md mx-auto select-none">
+      {/* Background */}
       <div
         className="fixed inset-0 -z-20 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${getBgUrl()})` }}
+        style={{ backgroundImage: `url(${bgUrl})` }}
       />
       <div className="fixed inset-0 -z-10 bg-background/75" />
 
+      {/* Hidden file input for background picker */}
+      <input
+        ref={bgInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleBgChange}
+      />
+
+      {/* Header */}
       <div className="w-full flex justify-between items-center mb-5">
         <span className="text-muted-foreground text-sm font-medium tracking-wide">
           {userConfig.displayName}
           {isRefreshing && <Loader2 className="inline w-3 h-3 ml-2 animate-spin opacity-50" />}
         </span>
         <div className="flex items-center gap-2">
+          {/* History - prominent, with label */}
           <button
             onClick={() => navigate("/history")}
             className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1.5 text-sm border border-foreground/20 rounded-lg px-3 py-1.5"
@@ -189,19 +226,29 @@ const Index = () => {
             <History className="w-3.5 h-3.5" />
             History
           </button>
+          {/* Sheet - icon only, subtle */}
           <a
             href={userConfig.sheetUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1.5 text-sm border border-foreground/20 rounded-lg px-3 py-1.5"
+            title="Open Google Sheet"
+            className="text-muted-foreground/60 hover:text-primary transition-colors p-1.5 rounded-lg border border-foreground/10 hover:border-foreground/20"
           >
             <ExternalLink className="w-3.5 h-3.5" />
-            Sheet
           </a>
+          {/* Background picker - icon only, subtle */}
+          <button
+            onClick={() => bgInputRef.current?.click()}
+            title="Change background photo"
+            className="text-muted-foreground/60 hover:text-primary transition-colors p-1.5 rounded-lg border border-foreground/10 hover:border-foreground/20"
+          >
+            <Image className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
 
-      <div className="w-full border border-foreground/20 rounded-xl p-4 bg-card">
+      {/* Currently Active Card - distinct with red left border */}
+      <div className="w-full border border-foreground/20 border-l-4 border-l-primary rounded-xl p-4 bg-card/95">
         {isLoading ? (
           <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm py-1">
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -210,7 +257,7 @@ const Index = () => {
         ) : currentActivity ? (
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Currently Active</p>
+              <p className="text-xs text-primary/80 uppercase tracking-wider mb-1 font-medium">Currently Active</p>
               <p className="text-foreground font-medium leading-snug">{currentActivity.activity}</p>
               {currentActivity.startTime && (
                 <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
@@ -235,9 +282,10 @@ const Index = () => {
         )}
       </div>
 
+      {/* Recent Completed Activities */}
       {!isLoading && recentActivities.length > 0 && (
-        <div className="mt-3 space-y-2">
-          <p className="text-xs text-muted-foreground uppercase tracking-wider px-1">Recent</p>
+        <div className="mt-4 space-y-2">
+          <p className="text-xs text-muted-foreground uppercase tracking-wider px-1 mb-3">Recent</p>
           <div className="space-y-2">
             {recentActivities.map((activity) => (
               <div
@@ -265,6 +313,7 @@ const Index = () => {
 
       <div className="flex-1 min-h-6" />
 
+      {/* Mic / New Activity Button */}
       <div className="flex flex-col items-center">
         <Button
           variant="record"
@@ -301,6 +350,7 @@ const Index = () => {
           </p>
         )}
 
+        {/* Transcript / Send area */}
         {showTranscript && (
           <div className="w-full mt-6 space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-300">
             {isIOS && (
@@ -315,14 +365,26 @@ const Index = () => {
               placeholder="Type or dictate your activity..."
               autoFocus
             />
-            <Button
-              variant="action"
-              className="w-full h-12 text-base font-semibold"
+            {/* Bold, satisfying Send button with press animation */}
+            <button
               onClick={handleSend}
               disabled={!editableTranscript.trim() || isSending}
+              className="w-full h-14 rounded-xl text-base font-bold tracking-wide transition-all duration-100
+                bg-primary text-primary-foreground
+                active:scale-[0.97] active:brightness-90
+                disabled:opacity-40 disabled:cursor-not-allowed
+                shadow-lg shadow-primary/30
+                hover:brightness-110"
             >
-              {isSending ? "Sending..." : "Send"}
-            </Button>
+              {isSending ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Sending...
+                </span>
+              ) : (
+                "Send"
+              )}
+            </button>
           </div>
         )}
       </div>
