@@ -48,7 +48,7 @@ const Index = () => {
       ]);
       setCurrentActivity(current);
       // Recent list excludes the currently active one (it's shown in its own card)
-      setRecentActivities(recent.filter((a) => !a.isActive && String(a.isActive) !== "true"));
+      setRecentActivities(recent.filter((a) => !a.isActive && String(a.isActive) !== "true").slice(0, 3));
     } catch {
       toast({
         title: "Failed to load",

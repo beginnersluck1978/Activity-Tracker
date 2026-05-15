@@ -26,5 +26,5 @@ export const userConfig = {
   backgroundImage: "bg-ski.jpg",
 
   // How many recent activities to fetch and display
-  recentActivityLimit: 3,
+  recentActivityLimit: 10,
 };
