@@ -134,14 +134,19 @@ export const inputToTime = (t: string): string => (t ? `${t}:00` : "");
 
 // Stored dates come back from Sheets as "M/D/YYYY" or sometimes "YYYY-MM-DD"
 export const dateToInput = (d: string | unknown): string => {
-  const s = String(d ?? "");
-  if (!s) return "";
+  const s = String(d ?? "").trim();
+  if (!s || s === "false" || s === "undefined") return "";
+  // Already YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // M/d/yyyy or MM/DD/YYYY
   const parts = s.split("/");
   if (parts.length === 3) {
-    return `${parts[2]}-${parts[0].padStart(2, "0")}-${parts[1].padStart(2, "0")}`;
+    const [m, day, y] = parts;
+    if (y.length === 4) {
+      return `${y}-${m.padStart(2, "0")}-${day.padStart(2, "0")}`;
+    }
   }
-  return s;
+  return "";
 };
 
 // "2026-05-15" → "5/15/2026"
@@ -170,10 +175,17 @@ export const formatDateDisplay = (d: string | unknown): string => {
   const input = dateToInput(d);
   if (!input) return "";
   try {
-    const date = new Date(input + "T00:00:00");
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    // Split manually to avoid timezone shifting
+    const [y, m, day] = input.split("-").map(Number);
+    const date = new Date(y, m - 1, day);
+    if (isNaN(date.getTime())) return "";
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
   } catch {
-    return String(d ?? "");
+    return "";
   }
 };
 
