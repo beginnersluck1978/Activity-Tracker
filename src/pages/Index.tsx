@@ -129,7 +129,6 @@ const Index = () => {
       setShowTranscript(false);
       setEditableTranscript("");
       resetTranscript();
-      toast({ title: "Activity logged", description: newActivity.activity });
       fetchRecentActivities()
         .then((recent) => {
           const filtered = recent
