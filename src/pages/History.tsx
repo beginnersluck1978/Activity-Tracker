@@ -201,12 +201,7 @@ const History = () => {
               )}
               <p className="text-foreground text-sm leading-snug">{a.activity}</p>
               <div className="flex flex-wrap items-center gap-1.5 mt-1.5 text-xs text-muted-foreground">
-{formatDateDisplay(a.date) && (
-  <>
-    <span className="text-primary/80">{String(a.date)}</span>
-    <span> - </span>
-  </>
-)}
+<span className="text-primary/80">{JSON.stringify(a.date)}</span>
                 <span>
                   {formatTimeDisplay(a.startTime)}
                   {hasEndTime ? ` – ${formatTimeDisplay(a.endTime)}` : ""}
