@@ -124,9 +124,22 @@ export async function insertActivity(fields: {
 
 // "14:30:00" → "14:30"  (for <input type="time">)
 export const timeToInput = (t: string | boolean | unknown): string => {
-  const s = String(t ?? "");
-  if (!s || s === "false" || s === "true") return "";
-  return s.slice(0, 5);
+  const s = String(t ?? "").trim();
+  if (!s || s === "false" || s === "true" || s === "undefined") return "";
+  // Already HH:MM format
+  if (/^\d{2}:\d{2}$/.test(s)) return s;
+  // HH:MM:SS format
+  if (/^\d{2}:\d{2}:\d{2}$/.test(s)) return s.slice(0, 5);
+  // Full date string like "Sat Dec 30 1899 10:56:30 GMT-0600..."
+  try {
+    const date = new Date(s);
+    if (!isNaN(date.getTime())) {
+      const h = String(date.getHours()).padStart(2, "0");
+      const m = String(date.getMinutes()).padStart(2, "0");
+      return `${h}:${m}`;
+    }
+  } catch { }
+  return "";
 };
 
 // "14:30" → "14:30:00"
