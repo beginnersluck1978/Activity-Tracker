@@ -136,9 +136,7 @@ export const inputToTime = (t: string): string => (t ? `${t}:00` : "");
 export const dateToInput = (d: string | unknown): string => {
   const s = String(d ?? "").trim();
   if (!s || s === "false" || s === "undefined") return "";
-  // Already YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  // M/d/yyyy or MM/DD/YYYY
   const parts = s.split("/");
   if (parts.length === 3) {
     const [m, day, y] = parts;
@@ -146,6 +144,16 @@ export const dateToInput = (d: string | unknown): string => {
       return `${y}-${m.padStart(2, "0")}-${day.padStart(2, "0")}`;
     }
   }
+  // Handle full date strings like "Fri May 15 2026 00:00:00 GMT-0500..."
+  try {
+    const date = new Date(s);
+    if (!isNaN(date.getTime())) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    }
+  } catch { }
   return "";
 };
 
