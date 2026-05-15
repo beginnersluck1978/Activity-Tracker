@@ -204,7 +204,7 @@ const History = () => {
 {formatDateDisplay(a.date) && (
   <>
     <span className="text-primary/80">{String(a.date)}</span>
-    <span>·</span>
+    <span>{"·"}</span>
   </>
 )}
                 <span>
