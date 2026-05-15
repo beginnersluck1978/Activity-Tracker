@@ -124,22 +124,9 @@ export async function insertActivity(fields: {
 
 // "14:30:00" → "14:30"  (for <input type="time">)
 export const timeToInput = (t: string | boolean | unknown): string => {
-  const s = String(t ?? "").trim();
-  if (!s || s === "false" || s === "true" || s === "undefined") return "";
-  // Already HH:MM format
-  if (/^\d{2}:\d{2}$/.test(s)) return s;
-  // HH:MM:SS format
-  if (/^\d{2}:\d{2}:\d{2}$/.test(s)) return s.slice(0, 5);
-  // Full date string like "Sat Dec 30 1899 10:56:30 GMT-0600..."
-  try {
-    const date = new Date(s);
-    if (!isNaN(date.getTime())) {
-      const h = String(date.getHours()).padStart(2, "0");
-      const m = String(date.getMinutes()).padStart(2, "0");
-      return `${h}:${m}`;
-    }
-  } catch { }
-  return "";
+  const s = String(t ?? "");
+  if (!s || s === "false" || s === "true") return "";
+  return s.slice(0, 5);
 };
 
 // "14:30" → "14:30:00"
@@ -147,27 +134,14 @@ export const inputToTime = (t: string): string => (t ? `${t}:00` : "");
 
 // Stored dates come back from Sheets as "M/D/YYYY" or sometimes "YYYY-MM-DD"
 export const dateToInput = (d: string | unknown): string => {
-  const s = String(d ?? "").trim();
-  if (!s || s === "false" || s === "undefined") return "";
+  const s = String(d ?? "");
+  if (!s) return "";
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
   const parts = s.split("/");
   if (parts.length === 3) {
-    const [m, day, y] = parts;
-    if (y.length === 4) {
-      return `${y}-${m.padStart(2, "0")}-${day.padStart(2, "0")}`;
-    }
+    return `${parts[2]}-${parts[0].padStart(2, "0")}-${parts[1].padStart(2, "0")}`;
   }
-  // Handle full date strings like "Fri May 15 2026 00:00:00 GMT-0500..."
-  try {
-    const date = new Date(s);
-    if (!isNaN(date.getTime())) {
-      const y = date.getFullYear();
-      const m = String(date.getMonth() + 1).padStart(2, "0");
-      const day = String(date.getDate()).padStart(2, "0");
-      return `${y}-${m}-${day}`;
-    }
-  } catch { }
-  return "";
+  return s;
 };
 
 // "2026-05-15" → "5/15/2026"
@@ -196,17 +170,10 @@ export const formatDateDisplay = (d: string | unknown): string => {
   const input = dateToInput(d);
   if (!input) return "";
   try {
-    // Split manually to avoid timezone shifting
-    const [y, m, day] = input.split("-").map(Number);
-    const date = new Date(y, m - 1, day);
-    if (isNaN(date.getTime())) return "";
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
+    const date = new Date(input + "T00:00:00");
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   } catch {
-    return "";
+    return String(d ?? "");
   }
 };
 
@@ -215,3 +182,21 @@ export const isToday = (d: string | unknown): boolean => {
   const todayInput = dateToInput(getWinnipegDateString());
   return input === todayInput;
 };
+
+// ── Combined initial data fetch (one round trip instead of two) ──────────────
+export async function fetchInitialData(): Promise<{ current: Activity | null; recent: Activity[] }> {
+  const data = await apiPost({
+    action: "getInitialData",
+    user: userConfig.userId,
+    limit: userConfig.recentActivityLimit,
+  });
+  if (data?.ok === true) {
+    return {
+      current: data.current ?? null,
+      recent: Array.isArray(data.recent) ? (data.recent as Activity[]) : [],
+    };
+  }
+  // Fallback: fetch separately if server doesn't support combined call yet
+  const [current, recent] = await Promise.all([fetchCurrentActivity(), fetchRecentActivities()]);
+  return { current, recent };
+}
