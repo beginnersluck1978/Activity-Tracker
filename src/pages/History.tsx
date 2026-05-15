@@ -239,38 +239,35 @@ const History = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-xs text-muted-foreground">Date</label>
-                <input
-                  type="date"
-                  value={editState.date}
-                  onChange={(e) => setEditState((s) => ({ ...s, date: e.target.value }))}
-                  className="w-full bg-background border border-foreground/20 rounded-lg px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs text-muted-foreground">Start Time</label>
-                <input
-                  type="time"
-                  value={editState.startTime}
-                  onChange={(e) => setEditState((s) => ({ ...s, startTime: e.target.value }))}
-                  className="w-full bg-background border border-foreground/20 rounded-lg px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                />
-              </div>
-            </div>
+  <div className="space-y-1">
+    <label className="text-xs text-muted-foreground">Start Time</label>
+    <input
+      type="time"
+      value={editState.startTime}
+      onChange={(e) => setEditState((s) => ({ ...s, startTime: e.target.value }))}
+      className="w-full bg-background border border-foreground/20 rounded-lg px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+    />
+  </div>
+  <div className="space-y-1">
+    <label className="text-xs text-muted-foreground">End Time</label>
+    <input
+      type="time"
+      value={editState.endTime}
+      onChange={(e) => setEditState((s) => ({ ...s, endTime: e.target.value }))}
+      className="w-full bg-background border border-foreground/20 rounded-lg px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+    />
+  </div>
+</div>
 
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">
-                End Time
-                <span className="ml-1 text-muted-foreground/60">(leave blank if still active)</span>
-              </label>
-              <input
-                type="time"
-                value={editState.endTime}
-                onChange={(e) => setEditState((s) => ({ ...s, endTime: e.target.value }))}
-                className="w-full bg-background border border-foreground/20 rounded-lg px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </div>
+<div className="space-y-1">
+  <label className="text-xs text-muted-foreground">Date</label>
+  <input
+    type="date"
+    value={editState.date}
+    onChange={(e) => setEditState((s) => ({ ...s, date: e.target.value }))}
+    className="w-full bg-background border border-foreground/20 rounded-lg px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+  />
+</div>
 
             {/* If end time changed, show the boundary note */}
             {editState.endTime && editState.endTime !== timeToInput(a.endTime) && idx > 0 && (
